@@ -77,7 +77,6 @@ for file in json_files:
         else:
             labels.append("NO_LABEL")
             
-        # Add ARCHIVED label if note is archived
         if data.get("isArchived", False):
             labels.append("ARCHIVED")
         
