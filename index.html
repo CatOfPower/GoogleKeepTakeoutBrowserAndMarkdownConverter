@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Note Browser</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #2d3748;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .container {
+      display: flex;
+      height: 100vh;
+      backdrop-filter: blur(10px);
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    #sidebar {
+      width: 320px;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(20px);
+      border-right: 1px solid rgba(255, 255, 255, 0.2);
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 0 40px rgba(0, 0, 0, 0.1);
+      transform: translateX(-100%);
+      animation: slideIn 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+    }
+
+    @keyframes slideIn {
+      to { transform: translateX(0); }
+    }
+
+    .sidebar-header {
+      padding: 2rem 1.5rem 1rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.05));
+    }
+
+    .sidebar-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #2d3748;
+      margin-bottom: 1rem;
+      opacity: 0;
+      animation: fadeInUp 0.6s ease-out 0.3s forwards;
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    #search {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border: 2px solid transparent;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(10px);
+      font-size: 0.95rem;
+      transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      opacity: 0;
+      animation: fadeInUp 0.6s ease-out 0.4s forwards;
+    }
+
+    #search:focus {
+      outline: none;
+      border-color: #667eea;
+      background: rgba(255, 255, 255, 0.95);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(102, 126, 234, 0.2);
+    }
+
+    .sidebar-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1rem 0;
+    }
+
+    .section {
+      margin-bottom: 1.5rem;
+      opacity: 0;
+      animation: fadeInUp 0.6s ease-out 0.5s forwards;
+    }
+
+    .section-title {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #667eea;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin: 0 1.5rem 0.75rem;
+      opacity: 0.8;
+    }
+
+    .label, .note-item {
+      margin: 0.25rem 1rem;
+      padding: 0.75rem 1rem;
+      cursor: pointer;
+      border-radius: 10px;
+      transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      position: relative;
+      overflow: hidden;
+      font-weight: 500;
+    }
+
+    .label {
+      background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+      color: #667eea;
+      font-weight: 600;
+    }
+
+    .label:hover {
+      background: linear-gradient(135deg, rgba(102, 126, 234, 0.2), rgba(118, 75, 162, 0.2));
+      transform: translateX(8px) scale(1.02);
+      box-shadow: 0 8px 25px rgba(102, 126, 234, 0.15);
+    }
+
+    .note-item {
+      background: rgba(255, 255, 255, 0.3);
+      color: #4a5568;
+      border-left: 3px solid transparent;
+    }
+
+    .note-item:hover {
+      background: rgba(255, 255, 255, 0.5);
+      transform: translateX(12px);
+      border-left-color: #667eea;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .note-item.active {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      border-left-color: #764ba2;
+      transform: translateX(12px);
+      box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+    }
+
+    #main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(20px);
+      opacity: 0;
+      animation: fadeIn 1s ease-out 0.6s forwards;
+    }
+
+    @keyframes fadeIn {
+      to { opacity: 1; }
+    }
+
+    .main-header {
+      padding: 2rem 2.5rem 1rem;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.1));
+      border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .breadcrumb {
+      font-size: 0.9rem;
+      color: #667eea;
+      font-weight: 500;
+      opacity: 0.8;
+    }
+
+    #content {
+      flex: 1;
+      padding: 2.5rem;
+      overflow-y: auto;
+      line-height: 1.7;
+      font-size: 1rem;
+    }
+
+    .welcome-message {
+      text-align: center;
+      padding: 4rem 2rem;
+      color: #718096;
+      font-size: 1.1rem;
+      opacity: 0.8;
+    }
+
+    .welcome-message h2 {
+      font-size: 2rem;
+      color: #667eea;
+      margin-bottom: 1rem;
+      font-weight: 300;
+    }
+
+    /* Enhanced content styling */
+    #content h1, #content h2, #content h3 {
+      color: #2d3748;
+      margin: 2rem 0 1rem;
+      font-weight: 600;
+    }
+
+    #content h1 {
+      font-size: 2.5rem;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    #content h2 {
+      font-size: 1.8rem;
+      color: #4a5568;
+    }
+
+    #content p {
+      margin: 1rem 0;
+      color: #2d3748;
+    }
+
+    #content a {
+      color: #667eea;
+      text-decoration: none;
+      font-weight: 500;
+      transition: all 0.3s ease;
+      position: relative;
+    }
+
+    #content a:hover {
+      color: #764ba2;
+      transform: translateY(-1px);
+    }
+
+    #content a::after {
+      content: '';
+      position: absolute;
+      width: 0;
+      height: 2px;
+      bottom: -2px;
+      left: 0;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      transition: width 0.3s ease;
+    }
+
+    #content a:hover::after {
+      width: 100%;
+    }
+
+    #content ul, #content ol {
+      margin: 1rem 0;
+      padding-left: 2rem;
+    }
+
+    #content li {
+      margin: 0.5rem 0;
+    }
+
+    #content code {
+      background: rgba(102, 126, 234, 0.1);
+      padding: 0.2rem 0.5rem;
+      border-radius: 6px;
+      font-family: 'Monaco', 'Menlo', monospace;
+      font-size: 0.9rem;
+      color: #667eea;
+    }
+
+    #content pre {
+      background: rgba(45, 55, 72, 0.95);
+      color: #e2e8f0;
+      padding: 1.5rem;
+      border-radius: 12px;
+      overflow-x: auto;
+      margin: 1.5rem 0;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    #content blockquote {
+      border-left: 4px solid #667eea;
+      padding: 1rem 1.5rem;
+      margin: 1.5rem 0;
+      background: rgba(102, 126, 234, 0.05);
+      border-radius: 0 8px 8px 0;
+      font-style: italic;
+    }
+
+    /* Scrollbar styling */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: linear-gradient(135deg, #764ba2, #667eea);
+    }
+
+    /* Loading animation */
+    .loading {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(102, 126, 234, 0.3);
+      border-radius: 50%;
+      border-top-color: #667eea;
+      animation: spin 1s ease-in-out infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Responsive design */
+    @media (max-width: 768px) {
+      #sidebar {
+        width: 280px;
+      }
+      
+      .sidebar-header, #content {
+        padding: 1.5rem;
+      }
+      
+      .main-header {
+        padding: 1.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div id="sidebar">
+      <div class="sidebar-header">
+        <h1 class="sidebar-title">📚 Notes</h1>
+        <input type="text" id="search" placeholder="🔍 Search notes...">
+      </div>
+      <div class="sidebar-content">
+        <div class="section">
+          <div class="section-title">Categories</div>
+          <div id="labels"></div>
+        </div>
+        <div class="section">
+          <div class="section-title">Notes</div>
+          <div id="notes"></div>
+        </div>
+      </div>
+    </div>
+    <div id="main">
+      <div class="main-header">
+        <div class="breadcrumb" id="breadcrumb">Welcome</div>
+      </div>
+      <div id="content">
+        <div class="welcome-message">
+          <h2>Welcome to your Note Browser</h2>
+          <p>Select a note from the sidebar to start reading.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/markdown-it/dist/markdown-it.min.js"></script>
+  <script>
+    const md = window.markdownit();
+    let notes = [];
+    let filteredNotes = [];
+    let currentNoteIndex = -1;
+    const labelsEl = document.getElementById('labels');
+    const notesEl = document.getElementById('notes');
+    const contentEl = document.getElementById('content');
+    const searchEl = document.getElementById('search');
+    const breadcrumbEl = document.getElementById('breadcrumb');
+
+    async function fetchText(path) {
+      try {
+        const res = await fetch(path);
+        if (!res.ok) throw new Error(`Failed to fetch ${path}`);
+        return res.text();
+      } catch (error) {
+        console.error('Fetch error:', error);
+        return '';
+      }
+    }
+
+    function parseLinks(mdText) {
+      const linkRegex = /\[(.*?)\]\((.*?)\)/g;
+      let match;
+      const links = [];
+      while ((match = linkRegex.exec(mdText)) !== null) {
+        links.push({ title: match[1], href: match[2] });
+      }
+      return links;
+    }
+
+    function showLoading() {
+      contentEl.innerHTML = '<div style="text-align: center; padding: 4rem;"><div class="loading"></div><p style="margin-top: 1rem; color: #667eea;">Loading notes...</p></div>';
+    }
+
+    async function init() {
+      showLoading();
+      
+      try {
+        // Fetch index from notes directory
+        const indexMd = await fetchText('notes/index.md');
+        if (!indexMd) {
+          throw new Error('Could not load notes index');
+        }
+        
+        const labelLinks = parseLinks(indexMd);
+        const allNotes = [];
+        
+        for (const lbl of labelLinks) {
+          // Fetch label file from notes directory
+          const labelMd = await fetchText(`notes/${lbl.href}`);
+          if (labelMd) {
+            const noteLinks = parseLinks(labelMd);
+            for (const note of noteLinks) {
+              allNotes.push({ 
+                label: lbl.title, 
+                title: note.title, 
+                path: `notes/${note.href}` 
+              });
+            }
+          }
+        }
+        
+        // Load all note contents
+        for (const n of allNotes) {
+          const mdContent = await fetchText(n.path);
+          if (mdContent) {
+            n.content = md.render(mdContent);
+          } else {
+            n.content = '<p>Could not load note content.</p>';
+          }
+        }
+        
+        notes = allNotes;
+        filteredNotes = notes;
+        renderLabels();
+        renderNotes();
+        
+        if (notes.length === 0) {
+          contentEl.innerHTML = `
+            <div class="welcome-message">
+              <h2>No Notes Found</h2>
+              <p>Make sure your notes directory structure is set up correctly:</p>
+              <ul style="text-align: left; display: inline-block; margin-top: 1rem;">
+                <li>notes/index.md (contains links to label files)</li>
+                <li>notes/[label].md (contains links to individual notes)</li>
+                <li>notes/[note].md (individual note files)</li>
+              </ul>
+            </div>
+          `;
+        }
+      } catch (error) {
+        console.error('Initialization error:', error);
+        contentEl.innerHTML = `
+          <div class="welcome-message">
+            <h2>Error Loading Notes</h2>
+            <p>Could not load the notes directory. Make sure this file is placed one directory above your notes folder.</p>
+            <p style="font-size: 0.9rem; opacity: 0.7; margin-top: 1rem;">Error: ${error.message}</p>
+          </div>
+        `;
+      }
+    }
+
+    function renderLabels() {
+      const unique = [...new Set(notes.map(n => n.label))];
+      labelsEl.innerHTML = '';
+      
+      // "All" option
+      const allDiv = document.createElement('div');
+      allDiv.textContent = '📋 All Notes';
+      allDiv.className = 'label';
+      allDiv.onclick = () => {
+        filteredNotes = notes;
+        renderNotes();
+        breadcrumbEl.textContent = 'All Notes';
+      };
+      labelsEl.appendChild(allDiv);
+      
+      unique.forEach((lbl, index) => {
+        const div = document.createElement('div');
+        div.textContent = `🏷️ ${lbl}`;
+        div.className = 'label';
+        div.onclick = () => filterByLabel(lbl);
+        div.style.animationDelay = `${0.1 * index}s`;
+        labelsEl.appendChild(div);
+      });
+    }
+
+    function renderNotes() {
+      notesEl.innerHTML = '';
+      filteredNotes.forEach((n, idx) => {
+        const div = document.createElement('div');
+        div.textContent = n.title;
+        div.className = 'note-item';
+        if (idx === currentNoteIndex) {
+          div.classList.add('active');
+        }
+        div.onclick = () => showContent(idx);
+        div.style.animationDelay = `${0.05 * idx}s`;
+        notesEl.appendChild(div);
+      });
+    }
+
+    function showContent(idx) {
+      if (idx >= 0 && idx < filteredNotes.length) {
+        currentNoteIndex = idx;
+        const note = filteredNotes[idx];
+        
+        // Add fade transition
+        contentEl.style.opacity = '0.3';
+        setTimeout(() => {
+          contentEl.innerHTML = note.content;
+          breadcrumbEl.textContent = `${note.label} / ${note.title}`;
+          contentEl.style.opacity = '1';
+        }, 150);
+        
+        renderNotes(); // Re-render to update active state
+      }
+    }
+
+    function filterByLabel(lbl) {
+      filteredNotes = notes.filter(n => n.label === lbl);
+      currentNoteIndex = -1;
+      renderNotes();
+      breadcrumbEl.textContent = lbl;
+    }
+
+    // Enhanced search with debouncing
+    let searchTimeout;
+    searchEl.addEventListener('input', () => {
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(() => {
+        const q = searchEl.value.toLowerCase().trim();
+        if (q === '') {
+          filteredNotes = notes;
+          breadcrumbEl.textContent = 'All Notes';
+        } else {
+          filteredNotes = notes.filter(n => 
+            n.title.toLowerCase().includes(q) || 
+            n.content.toLowerCase().includes(q) ||
+            n.label.toLowerCase().includes(q)
+          );
+          breadcrumbEl.textContent = `Search: "${q}"`;
+        }
+        currentNoteIndex = -1;
+        renderNotes();
+      }, 300);
+    });
+
+    // Keyboard navigation
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowDown' && currentNoteIndex < filteredNotes.length - 1) {
+        e.preventDefault();
+        showContent(currentNoteIndex + 1);
+      } else if (e.key === 'ArrowUp' && currentNoteIndex > 0) {
+        e.preventDefault();
+        showContent(currentNoteIndex - 1);
+      } else if (e.key === 'Escape') {
+        searchEl.focus();
+      }
+    });
+
+    // Initialize when page loads
+    init();
+  </script>
+</body>
+</html>
